@@ -101,16 +101,85 @@ h2{font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppe
 .stat b{display:block;font-family:var(--display);font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
 .stat span{font-size:11px;color:var(--muted)}
 #reportBox{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:140px}
-@media (prefers-reduced-motion:no-preference){.tab,.primary,.feel button{transition:background .15s,border-color .15s}}
+/* view switch + nutrition */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.seg button{font:inherit;font-weight:600;border:none;background:none;color:var(--muted);border-radius:9px;padding:9px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.view{display:flex;flex-direction:column;gap:16px}
+#fType button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--chip);font-weight:600}
+.bar{height:10px;background:var(--chip);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:999px}
+.bar.done i{background:var(--good)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 10px;cursor:pointer}
+.chips button b{color:var(--accent);font-weight:600}
+.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.items li{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}
+.items li b{color:var(--ink);font-weight:500}
+.meal{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:start;padding:9px 0;border-top:1px solid var(--line);cursor:pointer}
+.meal:first-of-type{border-top:none}
+.meal input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--good)}
+.meal .mt{font-weight:600}
+.meal .mt small{font-family:var(--display);font-size:16px;color:var(--muted);margin-right:6px;font-weight:600}
+.meal .mt em{font-style:normal;font-weight:400;font-size:12px;color:var(--muted);margin-left:6px}
+.meal .mh{grid-column:2;font-size:12px;color:var(--muted)}
+.meal.on .mt{color:var(--good)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wk{font:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 2px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink)}
+.wk span{font-size:11px;color:var(--muted)}
+.wk b{font-family:var(--display);font-size:18px;line-height:1}
+.wk.good b{color:var(--good)}
+.wk.mid b{color:var(--warn)}
+.wk[aria-current="date"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+@media (prefers-reduced-motion:no-preference){.tab,.primary,.feel button{transition:background .15s,border-color .15s}.bar i{transition:width .25s}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Дневник тренировок</h1>
-    <p>Записывай вес и повторы — рядом будет прошлый результат и подсказка, когда добавить вес.</p>
+    <h1 id="hTitle">Дневник тренировок</h1>
+    <p id="hSub">Записывай вес и повторы — рядом будет прошлый результат и подсказка, когда добавить вес.</p>
   </header>
 
+  <div class="seg" role="tablist" aria-label="Раздел">
+    <button type="button" role="tab" id="vTrain" aria-selected="true">Тренировки</button>
+    <button type="button" role="tab" id="vFood" aria-selected="false">Питание</button>
+  </div>
+
+  <!-- nutrition -->
+  <div class="view" id="foodView" hidden>
+    <div class="stats" id="fStats"></div>
+    <div class="row">
+      <label class="f" for="fDate">Дата<input type="date" id="fDate"></label>
+      <label class="f" for="fBw">Вес тела, кг<input type="number" id="fBw" step="0.1" inputmode="decimal" style="width:110px"></label>
+    </div>
+    <div>
+      <div class="rlbl" style="margin-bottom:4px">Какой сегодня день</div>
+      <div class="rate" id="fType" role="group" aria-label="Какой сегодня день"></div>
+    </div>
+    <div class="panel">
+      <div class="ex-h"><h3 style="margin:0;font-size:15px">Белок</h3><span class="target" id="pTxt"></span></div>
+      <div class="bar" id="pBarWrap"><i id="pBar"></i></div>
+      <p class="note" id="pLeft"></p>
+      <div class="rlbl">Съел — нажми</div>
+      <div class="chips" id="quick"></div>
+      <div class="row">
+        <label class="f" for="cName" style="flex:1 1 140px">Своё<input id="cName" placeholder="Например: тунец, банка"></label>
+        <label class="f" for="cP">Белок, г<input id="cP" type="number" inputmode="numeric" style="width:80px"></label>
+        <button class="ghost" id="cAdd" type="button">Добавить</button>
+      </div>
+      <ul class="items" id="items"></ul>
+    </div>
+    <div class="panel">
+      <div class="ex-h"><span class="rlbl">Приёмы пищи</span><span class="target" id="mTxt"></span></div>
+      <div id="meals"></div>
+    </div>
+    <h2>Последние 7 дней</h2>
+    <div class="week" id="week"></div>
+    <p class="note">Цифра — граммы белка за день, под ней — сколько основных приёмов пищи отмечено. Зелёный — норма набрана. Цифры белка у продуктов примерные, этого достаточно.</p>
+  </div>
+
+  <div class="view" id="trainView">
   <div class="stats" id="stats"></div>
 
   <div class="tabs" role="tablist" id="tabs"></div>
@@ -156,10 +225,11 @@ h2{font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppe
 
   <h2 id="histTitle">История</h2>
   <div class="hist" id="hist"></div>
+  </div>
 
   <h2>Отчёт для Claude</h2>
   <div class="panel">
-    <p class="note" style="font-size:14px;color:var(--ink)">Скопируй и вставь в чат с Claude — он увидит план, все подходы, самочувствие и заметки и скорректирует программу.</p>
+    <p class="note" style="font-size:14px;color:var(--ink)">Скопируй и вставь в чат с Claude — он увидит план, все подходы, самочувствие, заметки и питание и скорректирует программу.</p>
     <label class="f" for="period">Период<select id="period"><option value="14">2 недели</option><option value="30" selected>Месяц</option><option value="90">3 месяца</option><option value="0">Всё время</option></select></label>
     <button class="primary" id="copyReport" type="button">Скопировать отчёт</button>
     <textarea id="reportBox" hidden readonly aria-label="Текст отчёта"></textarea>
@@ -167,7 +237,7 @@ h2{font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppe
 
   <h2>Резервная копия</h2>
   <div class="panel">
-    <p class="note" style="font-size:14px;color:var(--ink)">Записи хранятся только в этом браузере. Раз в пару недель сохраняй копию в «Файлы» — если почистишь Safari, всё восстановится.</p>
+    <p class="note" style="font-size:14px;color:var(--ink)">Записи (тренировки и питание) хранятся только в этом браузере. Раз в пару недель сохраняй копию в «Файлы» — если почистишь Safari, всё восстановится.</p>
     <div class="btns">
       <button class="ghost" id="backup" type="button">Сохранить копию</button>
       <button class="ghost" id="restoreBtn" type="button">Восстановить</button>
@@ -199,6 +269,8 @@ function load(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):
 function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
 let plan=load(LS_P,null)||JSON.parse(JSON.stringify(DEFAULT_PLAN));
 let sessions=load(LS_S,[]);
+const LS_F="trener_food_v1", LS_V="trener_view";
+let food=load(LS_F,{});
 let day=(()=>{try{return localStorage.getItem(LS_D)}catch(e){return null}})();
 if(!plan.days.find(d=>d.id===day)) day=plan.days[0].id;
 let extraEx=[], feel=0, editDraft=null, rates={};
@@ -226,8 +298,12 @@ function renderStats(){
   const wk=sessions.filter(s=>new Date(s.date+"T12:00:00")>=monday).length;
   const d30=new Date(now);d30.setDate(now.getDate()-29);
   const m=sessions.filter(s=>new Date(s.date+"T12:00:00")>=d30).length;
-  const bw=sessions.find(s=>s.bw);
-  $("#stats").innerHTML=`<div class="stat"><b>${wk}</b><span>на этой неделе</span></div><div class="stat"><b>${m}</b><span>за 30 дней</span></div><div class="stat"><b>${bw?bw.bw:"—"}</b><span>вес тела, кг</span></div>`;
+  $("#stats").innerHTML=`<div class="stat"><b>${wk}</b><span>на этой неделе</span></div><div class="stat"><b>${m}</b><span>за 30 дней</span></div><div class="stat"><b>${lastBw()||"—"}</b><span>вес тела, кг</span></div>`;
+}
+function lastBw(){ // latest body weight from workouts or nutrition days
+  const s=sessions.find(x=>x.bw), fk=Object.keys(food).filter(k=>food[k].bw).sort().pop();
+  if(fk&&(!s||fk>=s.date))return food[fk].bw;
+  return s?s.bw:null;
 }
 
 /* ---------- tabs ---------- */
@@ -442,7 +518,18 @@ function buildReport(){
     (s.entries||[]).forEach(e=>out.push(`  ${e.ex}: ${fmtSets(e.sets,e.unit)}${e.rate?` (${RATE[e.rate].toLowerCase()})`:""}`));
     if(s.note)out.push(`  Заметка: ${s.note}`);
   });
-  out.push("","Проанализируй прогресс и предложи, что скорректировать в плане.");
+  const fdays=Object.keys(food).filter(k=>!from||new Date(k+"T12:00:00")>=from).sort();
+  out.push("",`ПИТАНИЕ (цель по белку ${P_GOAL} г в день)`);
+  if(!fdays.length)out.push("Записей за период нет.");
+  else{
+    const ps=fdays.map(k=>protein(food[k]));
+    out.push(`Средний белок: ${Math.round(ps.reduce((a,b)=>a+b,0)/ps.length)} г, дней с нормой: ${ps.filter(p=>p>=P_GOAL).length} из ${fdays.length}`);
+    fdays.forEach(k=>{const x=food[k],[a,b]=mealsDone(x);
+      out.push(`${wd(k)} ${fmtDate(k)} · ${DTYPE[x.type]||""} · белок ${protein(x)} г · приёмов пищи ${a}/${b}${x.bw?` · вес ${x.bw} кг`:""}`);
+      if(x.items&&x.items.length)out.push("  "+x.items.map(i=>i.n).join(", "));
+    });
+  }
+  out.push("","Проанализируй прогресс тренировок и питания и предложи, что скорректировать.");
   return out.join("\n");
 }
 $("#copyReport").onclick=async()=>{
@@ -454,7 +541,7 @@ $("#copyReport").onclick=async()=>{
 
 /* ---------- backup ---------- */
 $("#backup").onclick=()=>{
-  const data=JSON.stringify({app:"trener",version:2,saved:new Date().toISOString(),plan,sessions},null,1);
+  const data=JSON.stringify({app:"trener",version:3,saved:new Date().toISOString(),plan,sessions,food},null,1);
   const blob=new Blob([data],{type:"application/json"}),a=document.createElement("a");
   a.href=URL.createObjectURL(blob);a.download=`trener-${today()}.json`;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
@@ -466,14 +553,120 @@ $("#restore").onchange=async ev=>{
     const seen=new Set(sessions.map(s=>s.created+"|"+s.date));
     const added=d.sessions.filter(s=>!seen.has(s.created+"|"+s.date));
     sessions=sessions.concat(added);plan=d.plan;savePlan();saveSessions();
-    if(!plan.days.find(x=>x.id===day))day=plan.days[0].id;renderAll();status(`Восстановлено: добавлено записей — ${added.length}`);
+    let fAdded=0;
+    if(d.food&&typeof d.food==="object"){Object.entries(d.food).forEach(([k,v])=>{if(!food[k]){food[k]=v;fAdded++}});store(LS_F,food)}
+    if(!plan.days.find(x=>x.id===day))day=plan.days[0].id;renderAll();renderFood();status(`Восстановлено: тренировок — ${added.length}, дней питания — ${fAdded}`);
   }catch(e){status("Это не файл резервной копии трекера",true)}
   ev.target.value="";
 };
 
+/* ---------- nutrition ---------- */
+const P_GOAL=135;
+const DTYPE={gym:"Зал",football:"Футбол",rest:"Отдых"};
+const M_B={id:"b",t:"7:30",name:"Завтрак",hint:"Омлет из 3 яиц + хлеб, или творог с бананом и мёдом, или овсянка + яйца. Не булочка"};
+const M_L={id:"l",t:"12:00",name:"Обед",hint:"Домашняя еда — главное, чтобы было мясо, рыба или курица"};
+const M_S={id:"s",t:"15:30",name:"Перекус на работе",hint:"Творог или греческий йогурт + банан, бутерброд с курицей, орехи + кефир"};
+const MEALS={
+  gym:[M_B,M_L,M_S,
+    {id:"d",t:"20:00",name:"Ужин после зала",hint:"Главный приём дня: крупа, картошка или макароны + мясо или рыба + овощи"},
+    {id:"e",t:"21:30",name:"Кефир или творог",hint:"Если голодно",opt:true}],
+  football:[M_B,M_L,M_S,
+    {id:"d",t:"18:30",name:"Ужин до футбола",hint:"Гречка или рис + курица или мясо — заправка на игру"},
+    {id:"e",t:"21:15",name:"После футбола",hint:"Лёгкий белок: кефир, творог 150–200 г или 2–3 яйца"}],
+  rest:[M_B,M_L,M_S,
+    {id:"d",t:"19:00",name:"Ужин",hint:"Крупа или овощи + мясо, рыба или яйца"},
+    {id:"e",t:"21:00",name:"Кефир или творог",hint:"Если голодно",opt:true}]
+};
+const QUICK=[["3 яйца",18],["Творог 200 г",34],["Курица 150 г",35],["Мясо 150 г",35],["Рыба 150 г",30],["Греч. йогурт 150 г",15],
+  ["Кефир, стакан",7],["Молоко, стакан",8],["Сыр 30 г",7],["Хлеб, 2 куска",6],["Крупа, порция",6],["Фасоль / чечевица",12],["Булочка",6]];
+let fDate=today();
+
+function iso(d){const x=new Date(d);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());return x.toISOString().slice(0,10)}
+function fDay(k=fDate){
+  const x=food[k];
+  if(x){x.meals=x.meals||{};x.items=x.items||[];if(!MEALS[x.type])x.type="rest";return x}
+  return {type:sessions.some(s=>s.date===k)?"gym":"rest",meals:{},items:[]};
+}
+function fSave(k,x){food[k]=x;if(!store(LS_F,food))status("Не удалось сохранить: браузер не даёт места",true)}
+function protein(x){return (x.items||[]).reduce((a,i)=>a+(+i.p||0),0)}
+function mealsDone(x){const req=(MEALS[x.type]||MEALS.rest).filter(m=>!m.opt);return [req.filter(m=>x.meals&&x.meals[m.id]).length,req.length]}
+function addItem(n,p){const x=fDay();x.items.push({n,p});fSave(fDate,x);renderFood()}
+
+function renderQuick(){
+  const q=$("#quick");q.innerHTML="";
+  QUICK.forEach(([n,p])=>{const b=document.createElement("button");b.type="button";b.append(n+" ");const g=document.createElement("b");g.textContent="+"+p;b.appendChild(g);
+    b.onclick=()=>addItem(n,p);q.appendChild(b)});
+}
+function renderFood(){
+  const d=fDay(), p=protein(d), [md,mt]=mealsDone(d);
+  $("#fDate").value=fDate;$("#fBw").value=d.bw||"";
+  // stats
+  const base=new Date(fDate+"T12:00:00");let good=0;
+  const week=[];for(let i=6;i>=0;i--){const dt=new Date(base);dt.setDate(base.getDate()-i);week.push(iso(dt))}
+  week.forEach(k=>{if(food[k]&&protein(food[k])>=P_GOAL)good++});
+  $("#fStats").innerHTML=`<div class="stat"><b>${p}</b><span>белок, г</span></div><div class="stat"><b>${md}/${mt}</b><span>приёмов пищи</span></div><div class="stat"><b>${good}/7</b><span>дней с нормой</span></div>`;
+  // day type
+  const ft=$("#fType");ft.innerHTML="";
+  Object.entries(DTYPE).forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.textContent=l;b.setAttribute("aria-pressed",d.type===v);
+    b.onclick=()=>{const x=fDay();x.type=v;fSave(fDate,x);renderFood()};ft.appendChild(b)});
+  // protein
+  $("#pTxt").textContent=`${p} / ${P_GOAL} г`;
+  $("#pBar").style.width=Math.min(100,p/P_GOAL*100)+"%";
+  $("#pBarWrap").classList.toggle("done",p>=P_GOAL);
+  $("#pLeft").textContent=p>=P_GOAL?"Норма белка набрана ✓":`Осталось ${P_GOAL-p} г`;
+  const ul=$("#items");ul.innerHTML="";
+  d.items.forEach((it,i)=>{
+    const li=document.createElement("li"),n=document.createElement("span"),r=document.createElement("span");
+    n.textContent=it.n;r.innerHTML=`<b></b> · <button class="del" type="button">убрать</button>`;r.querySelector("b").textContent="+"+it.p+" г";
+    r.querySelector("button").onclick=()=>{const x=fDay();x.items.splice(i,1);fSave(fDate,x);renderFood()};
+    li.append(n,r);ul.appendChild(li);
+  });
+  // meals
+  $("#mTxt").textContent=`${md}/${mt}`;
+  const mw=$("#meals");mw.innerHTML="";
+  MEALS[d.type].forEach(m=>{
+    const lab=document.createElement("label");lab.className="meal"+(d.meals[m.id]?" on":"");lab.htmlFor="m-"+m.id;
+    lab.innerHTML=`<input type="checkbox" id="m-${m.id}"><span class="mt"><small></small><span></span>${m.opt?"<em>по желанию</em>":""}</span><span class="mh"></span>`;
+    lab.querySelector("small").textContent=m.t;lab.querySelector(".mt span").textContent=m.name;lab.querySelector(".mh").textContent=m.hint;
+    const cb=lab.querySelector("input");cb.checked=!!d.meals[m.id];
+    cb.onchange=()=>{const x=fDay();x.meals[m.id]=cb.checked;fSave(fDate,x);renderFood()};
+    mw.appendChild(lab);
+  });
+  // week strip
+  const wk=$("#week");wk.innerHTML="";
+  week.forEach(k=>{
+    const x=food[k],pp=x?protein(x):0,b=document.createElement("button");
+    b.type="button";b.className="wk"+(x&&pp>=P_GOAL?" good":x&&pp>=P_GOAL*0.7?" mid":"");
+    if(k===fDate)b.setAttribute("aria-current","date");
+    b.innerHTML=`<span>${wd(k)}</span><b>${x?pp:"—"}</b><span>${x?mealsDone(x).join("/"):"&nbsp;"}</span>`;
+    b.setAttribute("aria-label",`${fmtDate(k)}: белок ${x?pp+" г":"нет записей"}`);
+    b.onclick=()=>{fDate=k;renderFood()};wk.appendChild(b);
+  });
+}
+$("#fDate").onchange=()=>{fDate=$("#fDate").value||today();renderFood()};
+$("#fBw").onchange=()=>{const x=fDay(),v=+$("#fBw").value;if(v)x.bw=v;else delete x.bw;fSave(fDate,x);renderFood();renderStats()};
+$("#cAdd").onclick=()=>{
+  const g=Math.round(+$("#cP").value);if(!g||g<0){$("#cP").focus();return}
+  addItem($("#cName").value.trim()||"Другое",g);$("#cName").value="";$("#cP").value="";
+};
+
+/* ---------- view switch ---------- */
+const SUB={train:"Записывай вес и повторы — рядом будет прошлый результат и подсказка, когда добавить вес.",
+  food:`Цель — ${P_GOAL} г белка в день и все основные приёмы пищи. Отмечай, что съел, одним нажатием.`};
+function setView(v){
+  try{localStorage.setItem(LS_V,v)}catch(e){}
+  $("#trainView").hidden=v!=="train";$("#foodView").hidden=v!=="food";
+  $("#vTrain").setAttribute("aria-selected",v==="train");$("#vFood").setAttribute("aria-selected",v==="food");
+  $("#hTitle").textContent=v==="food"?"Дневник питания":"Дневник тренировок";$("#hSub").textContent=SUB[v];
+  if(v==="food"){fDate=$("#fDate").value||today();renderFood()}
+}
+$("#vTrain").onclick=()=>setView("train");
+$("#vFood").onclick=()=>setView("food");
+
 function renderAll(){renderStats();renderTabs();renderForm();renderFeel();renderHist()}
 $("#date").value=today();
-sortS();renderAll();
+sortS();renderAll();renderQuick();
+setView((()=>{try{return localStorage.getItem(LS_V)}catch(e){return null}})()==="food"?"food":"train");
 </script>
 </body>
 </html>
