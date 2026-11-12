@@ -14,14 +14,14 @@
 /* Layout: one narrow column like a coach's clipboard — day tabs, exercise cards with set rows, history, then report/backup */
 :root{
   --bg:#eef1f4; --surface:#ffffff; --ink:#16202b; --muted:#5d6b78; --line:#d5dce3;
-  --accent:#1f6feb; --accent-ink:#ffffff; --good:#1a7f4b; --warn:#a15c00; --bad:#c4372b; --chip:#e3ebf7;
+  --accent:#1f6feb; --accent-ink:#ffffff; --good:#1a7f4b; --warn:#a15c00; --bad:#c4372b; --chip:#e3ebf7; --water:#0e8fa3;
   --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
   --bg:#0f151c; --surface:#18212b; --ink:#e6ecf2; --muted:#93a1ae; --line:#2a3542;
-  --accent:#5b9cff; --accent-ink:#0b1320; --good:#4cc38a; --warn:#e3a44a; --bad:#ff7b6e; --chip:#1f2c3b; color-scheme:dark}}
+  --accent:#5b9cff; --accent-ink:#0b1320; --good:#4cc38a; --warn:#e3a44a; --bad:#ff7b6e; --chip:#1f2c3b; --water:#3cc6d9; color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
@@ -113,6 +113,17 @@ h2{font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppe
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 10px;cursor:pointer}
 .chips button b{color:var(--accent);font-weight:600}
+.chips button i{font-style:normal;color:var(--warn);font-weight:600}
+.bar.carb i{background:var(--warn)}
+.bar.carb.done i{background:var(--good)}
+.bar.water i{background:var(--water)}
+.bar.water.done i{background:var(--good)}
+.wbtns{display:grid;grid-template-columns:1fr 1fr 64px;gap:6px}
+.wbtns button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 6px;cursor:pointer}
+.wbtns button{display:flex;flex-direction:column;align-items:center;gap:1px}
+.wbtns button b{color:var(--water);font-size:16px}
+.wbtns button span{font-size:11px;color:var(--muted)}
+.wbtns .minus{color:var(--muted)}
 .items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
 .items li{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}
 .items li b{color:var(--ink);font-weight:500}
@@ -161,14 +172,28 @@ h2{font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppe
       <div class="ex-h"><h3 style="margin:0;font-size:15px">Белок</h3><span class="target" id="pTxt"></span></div>
       <div class="bar" id="pBarWrap"><i id="pBar"></i></div>
       <p class="note" id="pLeft"></p>
-      <div class="rlbl">Съел — нажми</div>
+      <div class="ex-h"><h3 style="margin:0;font-size:15px">Углеводы</h3><span class="target" id="cTxt"></span></div>
+      <div class="bar carb" id="cBarWrap"><i id="cBar"></i></div>
+      <p class="note" id="cLeft"></p>
+      <div class="rlbl">Съел — нажми <span style="text-transform:none;letter-spacing:0"><b style="color:var(--accent)">Б</b> — белок, <b style="color:var(--warn)">У</b> — углеводы, в граммах</span></div>
       <div class="chips" id="quick"></div>
       <div class="row">
         <label class="f" for="cName" style="flex:1 1 140px">Своё<input id="cName" placeholder="Например: тунец, банка"></label>
-        <label class="f" for="cP">Белок, г<input id="cP" type="number" inputmode="numeric" style="width:80px"></label>
+        <label class="f" for="cP">Белок, г<input id="cP" type="number" inputmode="numeric" style="width:70px"></label>
+        <label class="f" for="cC">Углев., г<input id="cC" type="number" inputmode="numeric" style="width:70px"></label>
         <button class="ghost" id="cAdd" type="button">Добавить</button>
       </div>
       <ul class="items" id="items"></ul>
+    </div>
+    <div class="panel">
+      <div class="ex-h"><h3 style="margin:0;font-size:15px">Вода</h3><span class="target" id="wTxt"></span></div>
+      <div class="bar water" id="wBarWrap"><i id="wBar"></i></div>
+      <p class="note" id="wLeft"></p>
+      <div class="wbtns">
+        <button type="button" id="w250"><b>+250 мл</b><span>стакан</span></button>
+        <button type="button" id="w500"><b>+500 мл</b><span>бутылка</span></button>
+        <button type="button" id="wMinus" class="minus" aria-label="Убрать 250 мл"><b style="color:var(--muted)">−250</b><span>ошибся</span></button>
+      </div>
     </div>
     <div class="panel">
       <div class="ex-h"><span class="rlbl">Приёмы пищи</span><span class="target" id="mTxt"></span></div>
@@ -519,13 +544,14 @@ function buildReport(){
     if(s.note)out.push(`  Заметка: ${s.note}`);
   });
   const fdays=Object.keys(food).filter(k=>!from||new Date(k+"T12:00:00")>=from).sort();
-  out.push("",`ПИТАНИЕ (цель по белку ${P_GOAL} г в день)`);
+  out.push("",`ПИТАНИЕ (цель: белок ${P_GOAL} г, углеводы ~${C_GOAL} г, вода ~30 мл/кг в день)`);
   if(!fdays.length)out.push("Записей за период нет.");
   else{
     const ps=fdays.map(k=>protein(food[k]));
-    out.push(`Средний белок: ${Math.round(ps.reduce((a,b)=>a+b,0)/ps.length)} г, дней с нормой: ${ps.filter(p=>p>=P_GOAL).length} из ${fdays.length}`);
+    const cs=fdays.map(k=>carbs(food[k]));
+    out.push(`Средний белок: ${Math.round(ps.reduce((a,b)=>a+b,0)/ps.length)} г, углеводы: ${Math.round(cs.reduce((a,b)=>a+b,0)/cs.length)} г, дней с нормой: ${ps.filter(p=>p>=P_GOAL).length} из ${fdays.length}`);
     fdays.forEach(k=>{const x=food[k],[a,b]=mealsDone(x);
-      out.push(`${wd(k)} ${fmtDate(k)} · ${DTYPE[x.type]||""} · белок ${protein(x)} г · приёмов пищи ${a}/${b}${x.bw?` · вес ${x.bw} кг`:""}`);
+      out.push(`${wd(k)} ${fmtDate(k)} · ${DTYPE[x.type]||""} · белок ${protein(x)} г · углеводы ${carbs(x)} г · вода ${((x.water||0)/1000).toFixed(1)} л · приёмов пищи ${a}/${b}${x.bw?` · вес ${x.bw} кг`:""}`);
       if(x.items&&x.items.length)out.push("  "+x.items.map(i=>i.n).join(", "));
     });
   }
@@ -561,7 +587,7 @@ $("#restore").onchange=async ev=>{
 };
 
 /* ---------- nutrition ---------- */
-const P_GOAL=135;
+const P_GOAL=135, C_GOAL=300;
 const DTYPE={gym:"Зал",football:"Футбол",rest:"Отдых"};
 const M_B={id:"b",t:"7:30",name:"Завтрак",hint:"Омлет из 3 яиц + хлеб, или творог с бананом и мёдом, или овсянка + яйца. Не булочка"};
 const M_L={id:"l",t:"12:00",name:"Обед",hint:"Домашняя еда — главное, чтобы было мясо, рыба или курица"};
@@ -577,8 +603,11 @@ const MEALS={
     {id:"d",t:"19:00",name:"Ужин",hint:"Крупа или овощи + мясо, рыба или яйца"},
     {id:"e",t:"21:00",name:"Кефир или творог",hint:"Если голодно",opt:true}]
 };
-const QUICK=[["3 яйца",18],["Творог 200 г",34],["Курица 150 г",35],["Мясо 150 г",35],["Рыба 150 г",30],["Греч. йогурт 150 г",15],
-  ["Кефир, стакан",7],["Молоко, стакан",8],["Сыр 30 г",7],["Хлеб, 2 куска",6],["Крупа, порция",6],["Фасоль / чечевица",12],["Булочка",6]];
+const QUICK=[ // [название, белок г, углеводы г] — примерно
+  ["3 яйца",18,1],["Творог 200 г",34,6],["Курица 150 г",35,0],["Мясо 150 г",35,0],["Рыба 150 г",30,0],["Греч. йогурт 150 г",15,6],
+  ["Кефир, стакан",7,10],["Молоко, стакан",8,12],["Сыр 30 г",7,0],["Орехи, горсть",5,5],
+  ["Хлеб, 2 куска",6,25],["Овсянка 60 г",7,36],["Гречка 200 г (готовая)",8,40],["Рис / макароны 200 г (готовые)",6,55],["Картошка 200 г",4,35],
+  ["Фасоль / чечевица 200 г",18,40],["Банан",1,25],["Яблоко / фрукт",0,20],["Мёд, ложка",0,17],["Булочка",6,45]];
 let fDate=today();
 
 function iso(d){const x=new Date(d);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());return x.toISOString().slice(0,10)}
@@ -589,22 +618,28 @@ function fDay(k=fDate){
 }
 function fSave(k,x){food[k]=x;if(!store(LS_F,food))status("Не удалось сохранить: браузер не даёт места",true)}
 function protein(x){return (x.items||[]).reduce((a,i)=>a+(+i.p||0),0)}
+function carbs(x){return (x.items||[]).reduce((a,i)=>a+(+i.c||0),0)}
 function mealsDone(x){const req=(MEALS[x.type]||MEALS.rest).filter(m=>!m.opt);return [req.filter(m=>x.meals&&x.meals[m.id]).length,req.length]}
-function addItem(n,p){const x=fDay();x.items.push({n,p});fSave(fDate,x);renderFood()}
+function waterGoal(x){ // 30 мл на кг веса, +500 мл в день тренировки или игры
+  const bw=x.bw||lastBw()||71;return Math.round((bw*30+(x.type==="rest"?0:500))/50)*50}
+function glasses(n){const a=n%10,b=n%100;return n+" "+(a===1&&b!==11?"стакан":a>=2&&a<=4&&(b<12||b>14)?"стакана":"стаканов")}
+function addWater(ml){const x=fDay();x.water=Math.max(0,(x.water||0)+ml);fSave(fDate,x);renderFood()}
+function addItem(n,p,c){const x=fDay();x.items.push({n,p,c:c||0});fSave(fDate,x);renderFood()}
 
 function renderQuick(){
   const q=$("#quick");q.innerHTML="";
-  QUICK.forEach(([n,p])=>{const b=document.createElement("button");b.type="button";b.append(n+" ");const g=document.createElement("b");g.textContent="+"+p;b.appendChild(g);
-    b.onclick=()=>addItem(n,p);q.appendChild(b)});
+  QUICK.forEach(([n,p,c])=>{const b=document.createElement("button");b.type="button";b.append(n+" ");
+    const g=document.createElement("b");g.textContent="Б "+p;const u=document.createElement("i");u.textContent="У "+c;b.append(g," · ",u);
+    b.setAttribute("aria-label",`${n}: белок ${p} г, углеводы ${c} г`);
+    b.onclick=()=>addItem(n,p,c);q.appendChild(b)});
 }
 function renderFood(){
-  const d=fDay(), p=protein(d), [md,mt]=mealsDone(d);
+  const d=fDay(), p=protein(d), c=carbs(d), [md,mt]=mealsDone(d);
   $("#fDate").value=fDate;$("#fBw").value=d.bw||"";
   // stats
-  const base=new Date(fDate+"T12:00:00");let good=0;
+  const base=new Date(fDate+"T12:00:00");
   const week=[];for(let i=6;i>=0;i--){const dt=new Date(base);dt.setDate(base.getDate()-i);week.push(iso(dt))}
-  week.forEach(k=>{if(food[k]&&protein(food[k])>=P_GOAL)good++});
-  $("#fStats").innerHTML=`<div class="stat"><b>${p}</b><span>белок, г</span></div><div class="stat"><b>${md}/${mt}</b><span>приёмов пищи</span></div><div class="stat"><b>${good}/7</b><span>дней с нормой</span></div>`;
+  $("#fStats").innerHTML=`<div class="stat"><b>${p}</b><span>белок, г</span></div><div class="stat"><b>${c}</b><span>углеводы, г</span></div><div class="stat"><b>${((d.water||0)/1000).toFixed(1).replace(".",",")}</b><span>воды, л</span></div>`;
   // day type
   const ft=$("#fType");ft.innerHTML="";
   Object.entries(DTYPE).forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.textContent=l;b.setAttribute("aria-pressed",d.type===v);
@@ -614,10 +649,20 @@ function renderFood(){
   $("#pBar").style.width=Math.min(100,p/P_GOAL*100)+"%";
   $("#pBarWrap").classList.toggle("done",p>=P_GOAL);
   $("#pLeft").textContent=p>=P_GOAL?"Норма белка набрана ✓":`Осталось ${P_GOAL-p} г`;
+  const cg=d.type==="rest"?C_GOAL-50:C_GOAL; // в день отдыха углеводов чуть меньше
+  $("#cTxt").textContent=`${c} / ${cg} г`;
+  $("#cBar").style.width=Math.min(100,c/cg*100)+"%";
+  $("#cBarWrap").classList.toggle("done",c>=cg*0.9);
+  $("#cLeft").textContent=c>=cg*0.9?(c>cg*1.25?"Многовато — проверь, не за счёт ли сладкого и выпечки":"Углеводов достаточно ✓"):`Осталось ~${cg-c} г${d.type==="football"?" — основную часть съешь до игры":""}`;
+  const wg=waterGoal(d),w=d.water||0,L=v=>(v/1000).toFixed(2).replace(/0$/,"").replace(".",",");
+  $("#wTxt").textContent=`${L(w)} / ${L(wg)} л`;
+  $("#wBar").style.width=Math.min(100,w/wg*100)+"%";
+  $("#wBarWrap").classList.toggle("done",w>=wg);
+  $("#wLeft").textContent=w>=wg?"Норма воды выпита ✓":`Осталось ${L(wg-w)} л — примерно ${glasses(Math.ceil((wg-w)/250))}${d.type==="rest"?"":". В день тренировки пей и во время неё, понемногу"}`;
   const ul=$("#items");ul.innerHTML="";
   d.items.forEach((it,i)=>{
     const li=document.createElement("li"),n=document.createElement("span"),r=document.createElement("span");
-    n.textContent=it.n;r.innerHTML=`<b></b> · <button class="del" type="button">убрать</button>`;r.querySelector("b").textContent="+"+it.p+" г";
+    n.textContent=it.n;r.innerHTML=`<b></b> · <button class="del" type="button">убрать</button>`;r.querySelector("b").textContent=`Б ${it.p} · У ${it.c||0}`;
     r.querySelector("button").onclick=()=>{const x=fDay();x.items.splice(i,1);fSave(fDate,x);renderFood()};
     li.append(n,r);ul.appendChild(li);
   });
@@ -645,14 +690,17 @@ function renderFood(){
 }
 $("#fDate").onchange=()=>{fDate=$("#fDate").value||today();renderFood()};
 $("#fBw").onchange=()=>{const x=fDay(),v=+$("#fBw").value;if(v)x.bw=v;else delete x.bw;fSave(fDate,x);renderFood();renderStats()};
+$("#w250").onclick=()=>addWater(250);
+$("#w500").onclick=()=>addWater(500);
+$("#wMinus").onclick=()=>addWater(-250);
 $("#cAdd").onclick=()=>{
-  const g=Math.round(+$("#cP").value);if(!g||g<0){$("#cP").focus();return}
-  addItem($("#cName").value.trim()||"Другое",g);$("#cName").value="";$("#cP").value="";
+  const g=Math.max(0,Math.round(+$("#cP").value||0)),u=Math.max(0,Math.round(+$("#cC").value||0));if(!g&&!u){$("#cP").focus();return}
+  addItem($("#cName").value.trim()||"Другое",g,u);$("#cName").value="";$("#cP").value="";$("#cC").value="";
 };
 
 /* ---------- view switch ---------- */
 const SUB={train:"Записывай вес и повторы — рядом будет прошлый результат и подсказка, когда добавить вес.",
-  food:`Цель — ${P_GOAL} г белка в день и все основные приёмы пищи. Отмечай, что съел, одним нажатием.`};
+  food:`Цель — ${P_GOAL} г белка и около ${C_GOAL} г углеводов в день плюс вода и все основные приёмы пищи. Отмечай, что съел, одним нажатием.`};
 function setView(v){
   try{localStorage.setItem(LS_V,v)}catch(e){}
   $("#trainView").hidden=v!=="train";$("#foodView").hidden=v!=="food";
